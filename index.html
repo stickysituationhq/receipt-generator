@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beautiful Receipt Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-section,
+        .receipt-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-section h1 {
+            color: #2d3748;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: monospace;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .section-title {
+            background: #f7fafc;
+            padding: 12px 16px;
+            margin: 25px -30px 20px;
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 16px;
+        }
+
+        .line-items {
+            margin-top: 20px;
+        }
+
+        .line-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        /* Receipt Styles */
+        .receipt {
+            background: white;
+            padding: 60px;
+            color: #2d3748;
+            position: relative;
+        }
+
+        .receipt-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .logo-box {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-placeholder {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .receipt-title {
+            margin: 30px 0 40px;
+        }
+
+        .receipt-title h1 {
+            display: inline-block;
+            color: #3e4c59;
+            font-size: 48px;
+            margin-right: 15px;
+            position: relative;
+        }
+
+        .paid-badge {
+            position: absolute;
+            top: 10px;
+            right: -60px;
+            background: #48bb78;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .receipt-parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 50px;
+        }
+
+        .party-section h3 {
+            color: #3e4c59;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .party-section:nth-child(2) h3 {
+            text-align: right;
+        }
+
+        .party-section p {
+            color: #718096;
+            line-height: 1.8;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .party-section p strong {
+            font-size: 16px;
+        }
+
+        .add-address-link {
+            color: #3182ce;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .party-section .from-content {
+            text-align: right;
+        }
+
+        .order-details {
+            margin: 50px 0;
+        }
+
+        .order-details h3 {
+            color: #3e4c59;
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .order-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .order-meta p {
+            color: #3e4c59;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .order-meta .right {
+            text-align: right;
+        }
+
+        .items-table {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .table-header div {
+            color: #718096;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .table-header div:nth-child(2) {
+            text-align: center;
+        }
+
+        .table-header div:last-child {
+            text-align: right;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .table-row div {
+            color: #3e4c59;
+            font-size: 14px;
+        }
+
+        .table-row div:first-child {
+            padding-right: 15px;
+        }
+
+        .table-row div:nth-child(2) {
+            text-align: center;
+        }
+
+        .table-row div:last-child {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .items-note {
+            color: #718096;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .tax-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 30px;
+            color: #3e4c59;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 30px;
+            background: white;
+            font-size: 24px;
+            font-weight: 700;
+            color: #3e4c59;
+            border-radius: 8px;
+        }
+
+        .receipt-footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #718096;
+            line-height: 1.8;
+        }
+
+        .receipt-footer a {
+            color: #3182ce;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                display: block;
+            }
+
+            .form-section {
+                display: none;
+            }
+
+            .receipt-section {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            .receipt {
+                padding: 40px;
+            }
+        }
+
+        .small-text {
+            font-size: 13px;
+            color: #a0aec0;
+        }
+
+        .receipt-divider {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Form Section -->
+        <div class="form-section">
+
+            <h1>📝 Receipt Generator</h1>
+            <div class="section-title">Company Logo</div>
+            <div class="form-group">
+                <label>Logo Image</label>
+                <p style="color: #718096; font-size: 13px; margin-top: 5px;">Place your logo at: <code style="background: #f7fafc; padding: 2px 6px; border-radius: 4px;">images/logo.png</code></p>
+            </div>
+            <div class="section-title">Receipt From (Your Company)</div>
+            <div class="form-group">
+                <label>Company Name</label>
+                <input type="text" id="fromCompany" placeholder="Sticky Situation" value="Sticky Situation">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="enableAddress" style="margin-right: 8px; width: auto;"> Address (Self-collection only) </label>
+                <textarea id="fromAddress" placeholder="Blk 440, Ang Mo Kio Avenue 10&#10;12-1289&#10;560440, Singapore">Blk 440, Ang Mo Kio Avenue 10 12-1289 560440, Singapore</textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="fromEmail" placeholder="stickysituationhq@gmail.com" value="stickysituationhq@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Contact (WhatsApp only)</label>
+                    <input type="text" id="fromContact" placeholder="88371140" value="88371140">
+                </div>
+            </div>
+            <div class="section-title">Receipt To (Customer)</div>
+            <div class="form-group">
+                <label>Customer Name</label>
+                <input type="text" id="toName" placeholder="Enter customer name...">
+            </div>
+            <div class="form-group">
+                <label>Customer Address (optional)</label>
+                <textarea id="toAddress" placeholder="Enter customer address..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="selfPickup" style="margin-right: 8px; width: auto;"> Self Pick-up </label>
+            </div>
+            <div class="section-title">Order Details</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Order Number (3 digits only)</label>
+                    <input type="text" id="orderNumber" placeholder="001" value="" maxlength="3" pattern="[0-9]{1,3}">
+                    <p style="color: #718096; font-size: 12px; margin-top: 5px;">Format: DDMMYY + 3 digits (e.g., 140126999)</p>
+                </div>
+                <div class="form-group">
+                    <label>Billing Date</label>
+                    <input type="date" id="billingDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="paymentMethod">
+                        <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select id="currency">
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="SGD" selected>SGD (S$)</option>
+                        <option value="MYR">MYR (RM)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-title">Line Items</div>
+            <div class="line-items" id="lineItems">
+                <div class="line-item">
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" class="item-name" placeholder="Product/Service name" value="">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" class="item-quantity" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" class="item-price" step="0.01" min="0" placeholder="0.00" value="">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-danger remove-item" onclick="removeItem(this)">✕</button>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="addLineItem()">+ Add Line Item</button>
+            <div class="form-group" style="margin-top: 25px;">
+                <label>Discount (optional)</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="discountValue" step="0.01" min="0" placeholder="0.00" style="flex: 1;">
+                    <select id="discountType" style="width: auto; flex: 0 0 auto;">
+                        <option value="dollar">Dollar ($)</option>
+                        <option value="percentage">Percentage (%)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 25px;">
+                <label>Footer Note (optional)</label>
+                <textarea id="footerNote" placeholder="Thank you for your purchase!"></textarea>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="updateReceipt()">🔄 Update Receipt</button>
+                <button class="btn btn-primary" onclick="printReceipt(event)">📄 Export to PDF</button>
+            </div>
+        </div>
+        <!-- Receipt Preview Section -->
+        <div class="receipt-section">
+            <div class="receipt" id="receipt">
+                <div class="receipt-header">
+                    <div class="logo-box" id="logoDisplay">
+                        <img src="images/logo.png" alt="Company Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="logo-placeholder" style="display: none;">YOUR LOGO</div>
+                    </div>
+                </div>
+                <div class="receipt-title">
+
+                    <h1>Receipt<span class="paid-badge">PAID</span></h1>
+                </div>
+                <div class="receipt-parties">
+                    <div class="party-section">
+                        <h3>To:</h3>
+                        <div id="toAddressDisplay">
+                            <a href="#" class="add-address-link">Add customer name & address</a> <span class="small-text">(optional)</span>
+                        </div>
+                    </div>
+                    <div class="party-section">
+                        <h3>From:</h3>
+                        <div class="from-content" id="fromDisplay">
+                            <p><strong id="fromCompanyDisplay">Sticky Situation</strong></p>
+                            <p id="fromAddressDisplay">Blk 440, Ang Mo Kio Avenue 10<br>12-1289<br>560440, Singapore</p>
+                            <p id="fromEmailRow"><i class="fa-solid fa-envelope"></i> <span id="fromEmailDisplay">stickysituationhq@gmail.com</span></p>
+                            <p id="fromContactRow"><i class="fa-brands fa-whatsapp"></i> <span id="fromContactDisplay">88371140</span></p>
+                        </div>
+                    </div>
+                </div>
+                <hr class="receipt-divider">
+                <div class="order-details">
+                    <h3>Item(s):</h3>
+                    <div class="order-meta">
+                        <div>
+                            <p>Order Number / Receipt: <strong>#<span id="orderNumberDisplay">140126000</span></strong></p>
+                            <p>Billing date: <strong id="billingDateDisplay">14 Jan 2026</strong></p>
+                        </div>
+                        <div class="right">
+                            <p>Payment method: <strong id="paymentMethodDisplay">Bank Transfer</strong></p>
+                            <p>Currency: <strong id="currencyDisplay">SGD</strong></p>
+                        </div>
+                    </div>
+                    <div class="items-table">
+                        <div class="table-header">
+                            <div></div>
+                            <div>Quantity</div>
+                            <div>Price</div>
+                        </div>
+                        <div id="itemsTableBody">
+                            <div class="table-row">
+                                <div>Unnamed Item</div>
+                                <div>1</div>
+                                <div>S$0.00</div>
+                            </div>
+                        </div>
+                        <div class="items-note">Items listed are included in the price</div>
+                    </div>
+                    <div class="tax-row" id="discountRow" style="display: none;">
+                        <div>Discount:</div>
+                        <div id="discountAmountDisplay">-S$0.00</div>
+                    </div>
+                    <div class="total-row">
+                        <div>TOTAL</div>
+                        <div id="totalAmountDisplay">S$0.00</div>
+                    </div>
+                </div>
+                <div class="receipt-footer">
+                    <p id="footerNoteDisplay"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Set default date to today
+        document.getElementById('billingDate').valueAsDate = new Date();
+
+        // Currency symbols
+        const currencySymbols = {
+            'USD': 'US$',
+            'EUR': '€',
+            'GBP': '£',
+            'SGD': 'S$',
+            'MYR': 'RM'
+        };
+
+        function addLineItem() {
+            const lineItemsContainer = document.getElementById('lineItems');
+            const newItem = document.createElement('div');
+            newItem.className = 'line-item';
+            newItem.innerHTML = `
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" class="item-name" placeholder="Product/Service name">
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" class="item-quantity" min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Price</label>
+                    <input type="number" class="item-price" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-danger remove-item" onclick="removeItem(this)">✕</button>
+                </div>
+            `;
+            lineItemsContainer.appendChild(newItem);
+        }
+
+        function removeItem(button) {
+            const lineItemsContainer = document.getElementById('lineItems');
+            if (lineItemsContainer.children.length > 1) {
+                button.closest('.line-item').remove();
+            } else {
+                alert('You must have at least one line item!');
+            }
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const day = date.getDate();
+            const month = date.toLocaleString('en', { month: 'short' });
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
+        }
+
+        function updateReceipt() {
+            // From details
+            document.getElementById('fromCompanyDisplay').textContent = document.getElementById('fromCompany').value;
+
+            // Address field - only display if checkbox is enabled
+            const enableAddress = document.getElementById('enableAddress').checked;
+            const fromAddressDisplay = document.getElementById('fromAddressDisplay');
+            if (enableAddress) {
+                fromAddressDisplay.innerHTML = document.getElementById('fromAddress').value.replace(/\n/g, '<br>');
+                fromAddressDisplay.style.display = 'block';
+            } else {
+                fromAddressDisplay.style.display = 'none';
+            }
+
+            // Email field - only display if filled
+            const fromEmail = document.getElementById('fromEmail').value.trim();
+            const fromEmailRow = document.getElementById('fromEmailRow');
+            if (fromEmail) {
+                document.getElementById('fromEmailDisplay').textContent = fromEmail;
+                fromEmailRow.style.display = 'block';
+            } else {
+                fromEmailRow.style.display = 'none';
+            }
+
+            // Contact field - only display if filled
+            const fromContact = document.getElementById('fromContact').value.trim();
+            const fromContactRow = document.getElementById('fromContactRow');
+            if (fromContact) {
+                document.getElementById('fromContactDisplay').textContent = fromContact;
+                fromContactRow.style.display = 'block';
+            } else {
+                fromContactRow.style.display = 'none';
+            }
+
+            // To details
+            const toName = document.getElementById('toName').value.trim();
+            const toAddress = document.getElementById('toAddress').value.trim();
+            const selfPickup = document.getElementById('selfPickup').checked;
+            const toAddressDisplay = document.getElementById('toAddressDisplay');
+
+            if (toName || toAddress || selfPickup) {
+                let toHTML = '';
+                if (toName) {
+                    toHTML += '<p><strong>' + toName + '</strong></p>';
+                }
+                if (toAddress) {
+                    toHTML += '<p>' + toAddress.replace(/\n/g, '<br>') + '</p>';
+                }
+                if (selfPickup) {
+                    toHTML += '<p>(Self Pick-up)</p>';
+                }
+                toAddressDisplay.innerHTML = toHTML;
+            } else {
+                toAddressDisplay.innerHTML = '<a href="#" class="add-address-link">Add customer name & address</a> <span class="small-text">(optional)</span>';
+            }
+
+            // Order details
+            const orderNumber = document.getElementById('orderNumber').value || '000';
+            const paddedOrderNumber = orderNumber.padStart(3, '0'); // Pad to 3 digits
+
+            const billingDate = document.getElementById('billingDate').value;
+            const date = new Date(billingDate);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2); // Last 2 digits of year
+            const datePrefix = day + month + year;
+
+            const fullOrderNumber = datePrefix + paddedOrderNumber;
+            document.getElementById('orderNumberDisplay').textContent = fullOrderNumber;
+            document.getElementById('billingDateDisplay').textContent = formatDate(billingDate);
+            document.getElementById('paymentMethodDisplay').textContent = document.getElementById('paymentMethod').value;
+            const currency = document.getElementById('currency').value;
+            document.getElementById('currencyDisplay').textContent = currency;
+
+            // Get currency symbol
+            const currencySymbol = currencySymbols[currency] || currency;
+
+            // Line items
+            const lineItems = document.querySelectorAll('.line-item');
+            let subtotal = 0;
+            let itemsHTML = '';
+
+            lineItems.forEach(item => {
+                const name = item.querySelector('.item-name').value || 'Unnamed Item';
+                const quantity = parseFloat(item.querySelector('.item-quantity').value) || 0;
+                const price = parseFloat(item.querySelector('.item-price').value) || 0;
+                const itemTotal = quantity * price;
+                subtotal += itemTotal;
+
+                itemsHTML += `
+                    <div class="table-row">
+                        <div>${name}</div>
+                        <div>${quantity}</div>
+                        <div>${currencySymbol}${itemTotal.toFixed(2)}</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('itemsTableBody').innerHTML = itemsHTML;
+
+            // Discount calculation
+            const discountValue = parseFloat(document.getElementById('discountValue').value) || 0;
+            const discountType = document.getElementById('discountType').value;
+            let discountAmount = 0;
+
+            if (discountValue > 0) {
+                if (discountType === 'percentage') {
+                    discountAmount = subtotal * (discountValue / 100);
+                } else {
+                    discountAmount = discountValue;
+                }
+
+                // Show discount row
+                document.getElementById('discountRow').style.display = 'flex';
+                document.getElementById('discountAmountDisplay').textContent = `-${currencySymbol}${discountAmount.toFixed(2)}`;
+            } else {
+                // Hide discount row
+                document.getElementById('discountRow').style.display = 'none';
+            }
+
+            // Total calculation (subtotal minus discount)
+            const total = subtotal - discountAmount;
+
+            document.getElementById('totalAmountDisplay').textContent = `${currencySymbol}${total.toFixed(2)}`;
+
+            // Footer
+            const footerNote = document.getElementById('footerNote').value;
+            const updatedFooterNote = footerNote.replace(/US\$[\d.]+/g, `${currencySymbol}${total.toFixed(2)}`);
+            const footerNoteDisplay = document.getElementById('footerNoteDisplay');
+            if (footerNote.trim()) {
+                footerNoteDisplay.innerHTML = updatedFooterNote.replace(/\n/g, '<br>');
+                footerNoteDisplay.style.display = 'block';
+            } else {
+                footerNoteDisplay.style.display = 'none';
+            }
+        }
+
+        async function printReceipt(event) {
+            updateReceipt();
+            
+            // Check if libraries are available
+            if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+                alert('PDF library is loading... Please try again in a moment.');
+                console.error('PDF libraries not loaded yet');
+                return;
+            }
+            
+            // Get the receipt element
+            const receiptElement = document.getElementById('receipt');
+            
+            // Get order number for filename
+            const orderNumber = document.getElementById('orderNumberDisplay').textContent;
+            const filename = `Receipt_${orderNumber}.pdf`;
+            
+            // Show loading message if event is available
+            let originalText = '📄 Export to PDF';
+            if (event && event.target) {
+                originalText = event.target.textContent;
+                event.target.textContent = '⏳ Generating PDF...';
+                event.target.disabled = true;
+            }
+            
+            try {
+                // Clone the receipt element to avoid modifying the original
+                const clonedReceipt = receiptElement.cloneNode(true);
+                
+                // Replace Font Awesome icons with unicode symbols
+                const icons = clonedReceipt.querySelectorAll('i.fa-solid, i.fa-brands');
+                icons.forEach(icon => {
+                    if (icon.classList.contains('fa-envelope')) {
+                        icon.outerHTML = '✉';
+                    } else if (icon.classList.contains('fa-whatsapp')) {
+                        icon.outerHTML = '💬';
+                    }
+                });
+                
+                // Handle logo image - hide it to prevent CORS issues
+                const clonedLogoImg = clonedReceipt.querySelector('.logo-box img');
+                const clonedLogoPlaceholder = clonedReceipt.querySelector('.logo-placeholder');
+                
+                // Hide logo image and show placeholder to avoid CORS
+                if (clonedLogoImg) clonedLogoImg.style.display = 'none';
+                if (clonedLogoPlaceholder) clonedLogoPlaceholder.style.display = 'flex';
+                
+                // Temporarily add cloned element to DOM (hidden)
+                clonedReceipt.style.position = 'absolute';
+                clonedReceipt.style.left = '-9999px';
+                clonedReceipt.style.top = '0';
+                document.body.appendChild(clonedReceipt);
+                
+                // Capture the cloned receipt as canvas
+                const canvas = await html2canvas(clonedReceipt, {
+                    scale: 2,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: receiptElement.scrollWidth,
+                    windowHeight: receiptElement.scrollHeight
+                });
+                
+                // Remove cloned element
+                document.body.removeChild(clonedReceipt);
+                
+                // Get canvas dimensions
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                // Convert canvas to image
+                const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                // Add image to PDF
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                
+                // Save PDF
+                pdf.save(filename);
+                
+                // Reset button
+                if (event && event.target) {
+                    event.target.textContent = originalText;
+                    event.target.disabled = false;
+                }
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF: ' + error.message);
+                if (event && event.target) {
+                    event.target.textContent = originalText;
+                    event.target.disabled = false;
+                }
+            }
+        }
+
+        // Restrict order number to only 3 digits
+        document.getElementById('orderNumber').addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 3);
+        });
+
+        // Auto-update receipt on input changes
+        document.addEventListener('input', updateReceipt);
+
+        // Auto-update receipt on checkbox changes
+        document.addEventListener('change', updateReceipt);
+
+        // Initial update
+        updateReceipt();
+        
+        // Check if PDF libraries loaded successfully
+        window.addEventListener('load', function() {
+            if (typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+                console.error('PDF libraries failed to load. Check your internet connection.');
+            } else {
+                console.log('PDF export ready!');
+            }
+        });
+    </script>
+</body>
+</html>
